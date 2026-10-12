@@ -213,15 +213,18 @@ export class AudioPlayer {
     }
 
     /**
-     * Stop audio and reset
+     * Stop audio and reset.
+     * Resets the play cursor to the loop start (Point A) if a loop selection
+     * is active, otherwise resets to the very beginning (0).
      */
     stop() {
         this.stopSource();
-        this.pauseTime = 0;
-        this.currentTime = 0;
+        const resetTime = (this.loopStart !== null) ? this.loopStart : 0;
+        this.pauseTime = resetTime;
+        this.currentTime = resetTime;
         this.isPlaying = false;
         this.stopTimeUpdates();
-        this.onTimeUpdate(0, this.duration);
+        this.onTimeUpdate(resetTime, this.duration);
         this.drawWaveform();
     }
 

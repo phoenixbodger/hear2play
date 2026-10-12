@@ -45,6 +45,8 @@ class Hear2PlayApp {
         this.elements.btnLoopB = document.getElementById('btn-loop-b');
         this.elements.btnLoopClear = document.getElementById('btn-loop-clear');
         this.elements.btnExportSelection = document.getElementById('btn-export-selection');
+        this.elements.btnStop = document.getElementById('btn-stop');
+        this.elements.btnRestart = document.getElementById('btn-restart');
         this.elements.currentTime = document.getElementById('current-time');
         this.elements.duration = document.getElementById('duration');
         this.elements.speedSlider = document.getElementById('speed-slider');
@@ -245,6 +247,8 @@ class Hear2PlayApp {
         this.elements.btnLoopB.addEventListener('click', () => this.audioPlayer.setLoopEnd());
         this.elements.btnLoopClear.addEventListener('click', () => this.audioPlayer.clearLoop());
         this.elements.btnExportSelection.addEventListener('click', () => this.exportSelection());
+        this.elements.btnStop.addEventListener('click', () => this.audioPlayer.stop());
+        this.elements.btnRestart.addEventListener('click', () => this.audioPlayer.seek(0));
 
         this.elements.speedSlider.addEventListener('input', (e) => {
             const rate = parseFloat(e.target.value);
@@ -612,6 +616,16 @@ class Hear2PlayApp {
         }
         if (event.code === 'ArrowRight') {
             this.audioPlayer.seek(Math.min(this.audioPlayer.duration, this.audioPlayer.currentTime + 1));
+        }
+        
+        if (event.code === 'KeyS' && event.target === document.body) {
+            event.preventDefault();
+            this.audioPlayer.stop();
+        }
+        
+        if (event.code === 'KeyR' && event.target === document.body) {
+            event.preventDefault();
+            this.audioPlayer.seek(0);
         }
 
         if (event.code === 'KeyL') {

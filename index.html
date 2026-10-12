@@ -45,6 +45,8 @@
                         <button id="btn-loop-b" class="btn btn-secondary" aria-label="Set Loop End (B)">B</button>
                         <button id="btn-loop-clear" class="btn btn-secondary" aria-label="Clear Loop" hidden>✕ Loop</button>
                         <button id="btn-export-selection" class="btn btn-secondary" aria-label="Export selected region as WAV" hidden>💾 Export</button>
+                        <button id="btn-stop" class="btn btn-secondary" aria-label="Stop">⏹</button>
+                        <button id="btn-restart" class="btn btn-secondary" aria-label="Restart">↻</button>
                     </div>
 
                     <div class="time-display">
@@ -238,6 +240,14 @@ python -m http.server 8000
                                 <tr>
                                     <td><kbd>L</kbd></td>
                                     <td>Toggle A-B loop</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>S</kbd></td>
+                                    <td>Stop playback and reset to beginning</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>R</kbd></td>
+                                    <td>Restart playback from the beginning</td>
                                 </tr>
                                 <tr>
                                     <td><kbd>Tab</kbd></td>
