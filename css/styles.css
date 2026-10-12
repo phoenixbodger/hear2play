@@ -735,3 +735,434 @@ input[type="file"] {
     white-space: nowrap;
     border: 0;
 }
+
+/* ==========================================================================
+   Instructions Button
+   ========================================================================== */
+.app-header {
+    position: relative;
+}
+
+.btn-instructions {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: var(--font-size-lg);
+    line-height: 1;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--fg-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--transition-base), background var(--transition-base), border-color var(--transition-base), transform var(--transition-fast);
+}
+
+.btn-instructions:hover,
+.btn-instructions:focus-visible {
+    color: var(--fg-primary);
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+    outline: none;
+    transform: scale(1.05);
+}
+
+/* ==========================================================================
+   Instructions Modal
+   ========================================================================== */
+.instructions-modal {
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    background: var(--bg-panel);
+    color: var(--fg-primary);
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 900px;
+    padding: 0;
+    overflow: hidden;
+    animation: modalSlideUp var(--transition-base);
+}
+
+.instructions-modal::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    animation: modalFadeIn var(--transition-base);
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: -1;
+}
+
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 90vh;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+}
+
+.modal-header h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--fg-primary);
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--fg-secondary);
+    font-size: var(--font-size-2xl);
+    line-height: 1;
+    cursor: pointer;
+    padding: var(--space-xs);
+    border-radius: 4px;
+    transition: color var(--transition-fast), background var(--transition-fast);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover,
+.modal-close:focus {
+    color: var(--fg-primary);
+    background: var(--bg-tertiary);
+    outline: none;
+}
+
+.modal-close:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+}
+
+.modal-body {
+    display: flex;
+    overflow: hidden;
+    flex: 1;
+}
+
+.modal-toc {
+    width: 220px;
+    flex-shrink: 0;
+    padding: var(--space-md);
+    border-right: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    overflow-y: auto;
+    max-height: 100%;
+}
+
+.modal-toc ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.modal-toc li {
+    margin-bottom: var(--space-xs);
+}
+
+.modal-toc a {
+    display: block;
+    padding: var(--space-sm) var(--space-md);
+    color: var(--fg-secondary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+    border-radius: 6px;
+    transition: color var(--transition-fast), background var(--transition-fast);
+    line-height: 1.4;
+}
+
+.modal-toc a:hover,
+.modal-toc a:focus {
+    color: var(--fg-primary);
+    background: var(--bg-tertiary);
+    outline: none;
+}
+
+.modal-toc a:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+}
+
+.modal-toc a.active {
+    color: var(--accent-primary);
+    background: var(--bg-tertiary);
+    font-weight: 500;
+}
+
+.modal-sections {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-lg);
+    max-height: 100%;
+}
+
+.modal-section {
+    margin-bottom: var(--space-xl);
+}
+
+.modal-section:last-child {
+    margin-bottom: 0;
+}
+
+.modal-section h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--fg-primary);
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-section h4 {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--fg-secondary);
+    margin: var(--space-lg) 0 var(--space-sm);
+}
+
+.modal-section p {
+    color: var(--fg-secondary);
+    line-height: 1.6;
+    margin-bottom: var(--space-md);
+}
+
+.modal-section ul,
+.modal-section ol {
+    margin-left: var(--space-lg);
+    margin-bottom: var(--space-md);
+    color: var(--fg-secondary);
+}
+
+.modal-section li {
+    margin-bottom: var(--space-xs);
+    line-height: 1.5;
+}
+
+.modal-section li strong {
+    color: var(--fg-primary);
+}
+
+.modal-section dl {
+    margin-bottom: var(--space-md);
+}
+
+.modal-section dt {
+    font-weight: 600;
+    color: var(--fg-primary);
+    margin-top: var(--space-md);
+}
+
+.modal-section dd {
+    margin-left: var(--space-md);
+    color: var(--fg-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.modal-section code {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    background: var(--bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--accent-primary);
+}
+
+.modal-section pre {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: var(--space-md);
+    overflow-x: auto;
+    margin: var(--space-md) 0;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+.modal-section pre code {
+    background: none;
+    padding: 0;
+    color: var(--fg-secondary);
+}
+
+.note-box {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--accent-primary);
+    border-left: 4px solid var(--accent-primary);
+    border-radius: 8px;
+    padding: var(--space-md);
+    margin: var(--space-md) 0;
+    color: var(--fg-secondary);
+}
+
+.note-box strong {
+    color: var(--accent-primary);
+}
+
+.footnote {
+    font-size: var(--font-size-xs);
+    color: var(--fg-muted);
+    margin-top: var(--space-md);
+}
+
+.shortcuts-table,
+.support-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+    margin: var(--space-md) 0;
+}
+
+.shortcuts-table th,
+.shortcuts-table td,
+.support-table th,
+.support-table td {
+    padding: var(--space-sm) var(--space-md);
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.shortcuts-table th,
+.support-table th {
+    font-weight: 600;
+    color: var(--fg-primary);
+    background: var(--bg-secondary);
+}
+
+.shortcuts-table td:first-child,
+.support-table td:first-child {
+    font-family: var(--font-mono);
+    font-weight: 500;
+}
+
+.shortcuts-table kbd {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    color: var(--fg-primary);
+}
+
+.support-table td {
+    text-align: center;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .instructions-modal {
+        width: 100vw;
+        max-width: 100vw;
+        max-height: 100vh;
+        height: 100vh;
+        border-radius: 0;
+        animation: modalSlideUpMobile var(--transition-base);
+    }
+
+    @keyframes modalSlideUpMobile {
+        from {
+            opacity: 0;
+            transform: translateY(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-body {
+        flex-direction: column;
+    }
+
+    .modal-toc {
+        width: 100%;
+        max-height: 200px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-toc ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-xs);
+    }
+
+    .modal-toc li {
+        margin-bottom: 0;
+    }
+
+    .modal-toc a {
+        padding: var(--space-xs) var(--space-sm);
+        font-size: var(--font-size-xs);
+        white-space: nowrap;
+    }
+
+    .modal-sections {
+        padding: var(--space-md);
+    }
+
+    .modal-header {
+        padding: var(--space-sm) var(--space-md);
+    }
+
+    .modal-header h2 {
+        font-size: var(--font-size-lg);
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .instructions-modal {
+        border: 2px solid var(--fg-primary);
+    }
+    
+    .modal-toc a.active {
+        border: 2px solid var(--accent-primary);
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .instructions-modal,
+    .instructions-modal::backdrop,
+    .modal-close {
+        animation: none;
+        transition: none;
+    }
+}

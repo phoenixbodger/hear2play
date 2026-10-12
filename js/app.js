@@ -56,6 +56,140 @@ class Hear2PlayApp {
         this.elements.logContainer = document.querySelector('.log-panel .panel-content');
         this.elements.btnClearLog = document.getElementById('btn-clear-log');
         this.elements.btnExportLog = document.getElementById('btn-export-log');
+        // Instructions modal elements
+        this.elements.btnInstructions = document.getElementById('btn-instructions');
+        this.elements.instructionsModal = document.getElementById('instructions-modal');
+        this.elements.modalClose = document.querySelector('.modal-close');
+        this.elements.modalOverlay = document.querySelector('.modal-overlay');
+        this.elements.modalTocLinks = document.querySelectorAll('.modal-toc a');
+        this.elements.modalSections = document.querySelectorAll('.modal-section');
+    }
+
+    initInstructionsModal() {
+        const modal = this.elements.instructionsModal;
+        const openBtn = this.elements.btnInstructions;
+        const closeBtn = this.elements.modalClose;
+        const overlay = this.elements.modalOverlay;
+        const tocLinks = this.elements.modalTocLinks;
+        const sections = this.elements.modalSections;
+
+        let lastFocusedElement = null;
+
+        const openModal = () => {
+            lastFocusedElement = document.activeElement;
+            modal.showModal();
+            closeBtn.focus();
+            document.body.style.overflow = 'hidden';
+            this.updateTocActive();
+        };
+
+        const closeModal = () => {
+            modal.close();
+            document.body.style.overflow = '';
+            if (lastFocusedElement) {
+                lastFocusedElement.focus();
+            }
+        };
+
+        // Open modal
+        openBtn.addEventListener('click', openModal);
+
+        // Close modal via close button
+        closeBtn.addEventListener('click', closeModal);
+
+        // Close modal via overlay click
+        overlay.addEventListener('click', closeModal);
+
+        // Close modal via Escape key (native dialog handles this, but we ensure focus restoration)
+        modal.addEventListener('close', () => {
+            document.body.style.overflow = '';
+            if (lastFocusedElement) {
+                lastFocusedElement.focus();
+            }
+        });
+
+        // Handle TOC link clicks - smooth scroll
+        tocLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                if (targetSection) {
+                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Update active state immediately
+                    this.updateTocActive(targetId);
+                }
+            });
+        });
+
+        // Scroll spy for TOC active state
+        const observerOptions = {
+            root: modal.querySelector('.modal-sections'),
+            rootMargin: '-20% 0px -60% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = '#' + entry.target.id;
+                    this.updateTocActive(id);
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => observer.observe(section));
+
+        // Also update on scroll (fallback)
+        const sectionsContainer = modal.querySelector('.modal-sections');
+        if (sectionsContainer) {
+            sectionsContainer.addEventListener('scroll', () => this.updateTocActive());
+        }
+    }
+
+    updateTocActive(currentId = null) {
+        const tocLinks = this.elements.modalTocLinks;
+        const sections = this.elements.modalSections;
+        const sectionsContainer = this.elements.instructionsModal?.querySelector('.modal-sections');
+
+        if (!sectionsContainer) return;
+
+        // If we have a currentId from click, use it
+        if (currentId) {
+            tocLinks.forEach(link => {
+                link.classList.toggle('active', link.getAttribute('href') === currentId);
+            });
+            return;
+        }
+
+        // Otherwise, detect from scroll position
+        const containerTop = sectionsContainer.scrollTop;
+        const containerHeight = sectionsContainer.clientHeight;
+
+        let activeSection = null;
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.offsetHeight;
+            // Section is in the upper portion of the viewport
+            if (sectionTop <= containerTop + containerHeight * 0.3 &&
+                sectionTop + sectionHeight >= containerTop + containerHeight * 0.1) {
+                activeSection = section;
+            }
+        });
+
+        // If no section detected, use the first one that's past the top
+        if (!activeSection) {
+            sections.forEach(section => {
+                if (section.offsetTop <= containerTop + 50 && !activeSection) {
+                    activeSection = section;
+                }
+            });
+        }
+
+        const activeId = activeSection ? '#' + activeSection.id : null;
+        tocLinks.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === activeId);
+        });
     }
 
     async init() {
@@ -123,6 +257,9 @@ class Hear2PlayApp {
 
         this.elements.btnClearLog.addEventListener('click', () => this.transcriptionLog.clear());
         this.elements.btnExportLog.addEventListener('click', () => this.transcriptionLog.downloadExport());
+
+        // Initialize instructions modal
+        this.initInstructionsModal();
 
         document.addEventListener('keydown', (e) => this.onKeyDown(e));
     }

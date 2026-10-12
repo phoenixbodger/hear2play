@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>hear2play — Ear Training for Pianists</title>
+    <title>hear2play â€” Ear Training for Pianists</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -11,6 +11,7 @@
         <header class="app-header">
             <h1>hear2play</h1>
             <p class="tagline">Train your ear by transcribing songs</p>
+            <button id="btn-instructions" class="btn btn-icon btn-instructions" aria-label="Open instructions" title="Instructions">❓</button>
         </header>
 
         <main class="app-main">
@@ -22,7 +23,7 @@
                 <div class="panel-content">
                     <div class="file-input-group">
                         <label for="audio-file" class="btn btn-primary">
-                            <span class="btn-icon">📁</span>
+                            <span class="btn-icon">ðŸ“</span>
                             Load Audio File
                         </label>
                         <input type="file" id="audio-file" accept="audio/mp3,audio/wav,audio/mpeg,audio/x-wav" hidden>
@@ -36,13 +37,13 @@
                     </div>
 
                     <div class="transport-controls">
-                        <button id="btn-rewind" class="btn btn-icon" title="Rewind 5s" aria-label="Rewind 5 seconds">⏪</button>
-                        <button id="btn-play" class="btn btn-primary btn-large" aria-label="Play">▶</button>
-                        <button id="btn-pause" class="btn btn-primary btn-large" aria-label="Pause" hidden>⏸</button>
-                        <button id="btn-forward" class="btn btn-icon" title="Forward 5s" aria-label="Forward 5 seconds">⏩</button>
+                        <button id="btn-rewind" class="btn btn-icon" title="Rewind 5s" aria-label="Rewind 5 seconds">âª</button>
+                        <button id="btn-play" class="btn btn-primary btn-large" aria-label="Play">â–¶</button>
+                        <button id="btn-pause" class="btn btn-primary btn-large" aria-label="Pause" hidden>â¸</button>
+                        <button id="btn-forward" class="btn btn-icon" title="Forward 5s" aria-label="Forward 5 seconds">â©</button>
                         <button id="btn-loop-a" class="btn btn-secondary" aria-label="Set Loop Start (A)">A</button>
                         <button id="btn-loop-b" class="btn btn-secondary" aria-label="Set Loop End (B)">B</button>
-                        <button id="btn-loop-clear" class="btn btn-secondary" aria-label="Clear Loop" hidden>✕ Loop</button>
+                        <button id="btn-loop-clear" class="btn btn-secondary" aria-label="Clear Loop" hidden>âœ• Loop</button>
                     </div>
 
                     <div class="time-display">
@@ -50,7 +51,7 @@
                     </div>
 
                     <div class="speed-control">
-                        <label for="speed-slider">Speed: <span id="speed-value">1.00×</span></label>
+                        <label for="speed-slider">Speed: <span id="speed-value">1.00Ã—</span></label>
                         <input type="range" id="speed-slider" min="0.25" max="1.0" step="0.05" value="1.0" aria-label="Playback speed">
                     </div>
 
@@ -103,10 +104,200 @@
         </main>
 
         <footer class="app-footer">
-            <p>hear2play — Built with Web Audio API, Web MIDI API & MediaDevices API</p>
+            <p>hear2play â€” Built with Web Audio API, Web MIDI API & MediaDevices API</p>
         </footer>
     </div>
 
     <script type="module" src="js/app.js"></script>
+<!-- Instructions Modal -->
+    <dialog id="instructions-modal" class="instructions-modal" aria-labelledby="instructions-title" role="dialog" aria-modal="true">
+        <div class="modal-overlay" tabindex="-1" aria-hidden="true"></div>
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2 id="instructions-title">Instructions</h2>
+                <button class="modal-close" aria-label="Close instructions" title="Close">×</button>
+            </header>
+            <div class="modal-body">
+                <nav class="modal-toc" aria-label="Table of contents">
+                    <ul>
+                        <li><a href="#getting-started">Getting Started</a></li>
+                        <li><a href="#audio-player">Audio Player</a></li>
+                        <li><a href="#piano-keyboard">Piano Keyboard & Input Modes</a></li>
+                        <li><a href="#transcription-log">Transcription Log</a></li>
+                        <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+                        <li><a href="#tips">Tips for Effective Practice</a></li>
+                        <li><a href="#requirements">Requirements</a></li>
+                    </ul>
+                </nav>
+                <div class="modal-sections">
+                    <section id="getting-started" class="modal-section">
+                        <h3>Getting Started</h3>
+                        <ol>
+                            <li><strong>Serve the project</strong> (required for MIDI/microphone access):
+                                <pre><code>npx serve
+# or
+python -m http.server 8000
+# or use VS Code Live Server</code></pre>
+                            </li>
+                            <li>Open <code>http://localhost:3000</code> (or your server URL) in a modern browser</li>
+                            <li><strong>Load an audio file</strong> using the folder button (📁) in the Audio Player panel</li>
+                            <li><strong>Connect a MIDI keyboard</strong> (auto-detected via Web MIDI API) <strong>or</strong> enable <strong>Microphone Input</strong> toggle in the Piano Keyboard panel</li>
+                            <li><strong>Play along</strong> — notes appear on the keyboard and in the transcription log</li>
+                        </ol>
+                        <div class="note-box">
+                            <strong>Note:</strong> This app requires a <strong>secure context</strong> (HTTPS or <code>localhost</code>). The <code>file://</code> protocol won't work for MIDI or microphone access.
+                        </div>
+                    </section>
+                    <section id="audio-player" class="modal-section">
+                        <h3>Audio Player</h3>
+                        <h4>Loading Audio</h4>
+                        <p>Click the <strong>📁 Load Audio File</strong> button to select an MP3 or WAV file from your computer. The waveform will be displayed once loaded.</p>
+                        
+                        <h4>Playback Controls</h4>
+                        <ul>
+                            <li><strong>▶ Play / ⏸ Pause</strong> — Start or pause playback</li>
+                            <li><strong>⏪ Rewind / ⏩ Forward</strong> — Seek backward/forward by 5 seconds</li>
+                            <li><strong>Speed slider</strong> — Adjust playback speed from 0.25× to 1.0× (pitch-preserving)</li>
+                            <li><strong>Volume slider</strong> — Control output volume</li>
+                        </ul>
+
+                        <h4>A-B Looping</h4>
+                        <ul>
+                            <li>Press <strong>A</strong> to set the loop start point</li>
+                            <li>Press <strong>B</strong> to set the loop end point</li>
+                            <li>The loop region is highlighted on the waveform</li>
+                            <li>Press <strong>✕ Loop</strong> to clear the loop</li>
+                            <li>Loop seamlessly repeats the selected section</li>
+                        </ul>
+
+                        <h4>Waveform</h4>
+                        <p>The waveform visualizes the loaded audio. The <strong>playhead</strong> (vertical line) shows current position. The <strong>loop region</strong> (shaded area) shows the A-B loop range when set.</p>
+                    </section>
+                    <section id="piano-keyboard" class="modal-section">
+                        <h3>Piano Keyboard & Input Modes</h3>
+
+                        <h4>On-Screen Keyboard</h4>
+                        <ul>
+                            <li>2-octave range: <strong>C4 to B5</strong> (24 keys)</li>
+                            <li><strong>Click/touch</strong> keys to play notes with synthesized piano tones</li>
+                            <li>Keys <strong>light up</strong> when notes are received via MIDI, microphone, or click</li>
+                            <li>Each key shows its note name (e.g., C4, C♯4, D4)</li>
+                            <li>Full keyboard accessibility: <kbd>Tab</kbd> to navigate, <kbd>Space</kbd>/<kbd>Enter</kbd> to play</li>
+                        </ul>
+
+                        <h4>Input Modes</h4>
+                        <p>Toggle between input modes using the <strong>Mic Input</strong> checkbox in the Piano Keyboard panel header:</p>
+                        <dl>
+                            <dt><strong>MIDI Input (default)</strong></dt>
+                            <dd>Uses Web MIDI API. Connect a MIDI keyboard — it's auto-detected. Status shows in the indicator (e.g., "MIDI: 1 device connected"). Handles Note On/Off with velocity.</dd>
+                            <dt><strong>Microphone Input</strong></dt>
+                            <dd>Uses MediaDevices API + Web Audio API for pitch detection via autocorrelation. Works with acoustic piano or voice. Frequency range: ~65–1000 Hz (C2–C6). Requires microphone permission.</dd>
+                        </dl>
+                        <div class="note-box">
+                            <strong>Tip:</strong> For best microphone results, minimize background noise and position the mic close to your instrument.
+                        </div>
+                    </section>
+                    <section id="transcription-log" class="modal-section">
+                        <h3>Transcription Log</h3>
+                        <ul>
+                            <li>Real-time logging of every note played</li>
+                            <li><strong>Automatic chord grouping:</strong> Notes played within 50ms are grouped as a chord</li>
+                            <li>Each entry shows: timestamp, note(s) with octave, and source (MIDI/Audio/Click)</li>
+                            <li>Chord entries have a teal left border</li>
+                            <li><strong>Clear</strong> — removes all entries</li>
+                            <li><strong>Export</strong> — downloads the log as a JSON file</li>
+                        </ul>
+                        <h4>Export Format</h4>
+                        <p>The exported JSON contains an array of entries, each with:</p>
+                        <pre><code>{
+  "time": 12.345,
+  "notes": ["C4", "E4", "G4"],
+  "source": "midi",
+  "velocity": 0.8
+}</code></pre>
+                    </section>
+                    <section id="keyboard-shortcuts" class="modal-section">
+                        <h3>Keyboard Shortcuts</h3>
+                        <table class="shortcuts-table">
+                            <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><kbd>Space</kbd></td>
+                                    <td>Play/Pause audio (when focused on page)</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>←</kbd> / <kbd>→</kbd></td>
+                                    <td>Seek -1s / +1s</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>L</kbd></td>
+                                    <td>Toggle A-B loop</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Tab</kbd></td>
+                                    <td>Navigate piano keys (when keyboard focused)</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Space</kbd> / <kbd>Enter</kbd></td>
+                                    <td>Play focused piano key</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section id="tips" class="modal-section">
+                        <h3>Tips for Effective Practice</h3>
+                        <ul>
+                            <li><strong>Start slow:</strong> Use 0.5× or 0.75× speed to hear individual notes clearly</li>
+                            <li><strong>Loop difficult passages:</strong> Set A-B loop on a challenging section and repeat</li>
+                            <li><strong>Use the transcription log:</strong> Export your practice sessions to track progress</li>
+                            <li><strong>Sing along:</strong> Try singing the melody before playing — strengthens pitch memory</li>
+                            <li><strong>Practice intervals:</strong> Focus on hearing the distance between notes, not just absolute pitch</li>
+                            <li><strong>MIDI vs Mic:</strong> MIDI is more accurate; microphone is great for acoustic piano practice</li>
+                        </ul>
+                    </section>
+                    <section id="requirements" class="modal-section">
+                        <h3>Browser Requirements</h3>
+                        <table class="support-table">
+                            <thead>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th>Chrome</th>
+                                    <th>Firefox</th>
+                                    <th>Safari</th>
+                                    <th>Edge</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Web Audio API</td>
+                                    <td>✅</td><td>✅</td><td>✅</td><td>✅</td>
+                                </tr>
+                                <tr>
+                                    <td>Web MIDI API</td>
+                                    <td>✅</td><td>❌*</td><td>❌*</td><td>✅</td>
+                                </tr>
+                                <tr>
+                                    <td>MediaDevices API</td>
+                                    <td>✅</td><td>✅</td><td>✅</td><td>✅</td>
+                                </tr>
+                                <tr>
+                                    <td>ES Modules</td>
+                                    <td>✅</td><td>✅</td><td>✅</td><td>✅</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p class="footnote">* Web MIDI requires enabling flag or Chrome/Edge</p>
+                        <h4>Development</h4>
+                        <p>No build step required — pure ES Modules. Edit files directly and refresh.</p>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </dialog>
 </body>
 </html>
