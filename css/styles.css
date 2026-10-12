@@ -305,6 +305,15 @@ input[type="file"] {
     border-radius: 8px;
     margin: var(--space-md) 0;
     overflow: hidden;
+    cursor: crosshair;
+}
+
+.waveform-container:hover {
+    cursor: crosshair;
+}
+
+.waveform-container.dragging {
+    cursor: ew-resize;
 }
 
 #waveform-canvas {
@@ -335,6 +344,14 @@ input[type="file"] {
     border-right: 2px solid var(--accent-primary);
     pointer-events: none;
     z-index: 5;
+}
+
+/* Preview loop region during drag */
+.loop-region.preview {
+    background: rgba(78, 205, 196, 0.08);
+    border-left: 2px dashed var(--accent-primary);
+    border-right: 2px dashed var(--accent-primary);
+    opacity: 0.7;
 }
 
 .transport-controls {

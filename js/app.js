@@ -202,6 +202,9 @@ class Hear2PlayApp {
         });
         this.audioPlayer.setWaveformCanvas(this.elements.waveformCanvas);
 
+        // Setup waveform click/drag interaction
+        this.setupWaveformInteraction();
+
         this.pianoKeyboard = new PianoKeyboard(this.elements.pianoContainer, {
             onNoteClick: (note, isDown, event) => this.onPianoNote(note, isDown, event)
         });
@@ -275,6 +278,157 @@ class Hear2PlayApp {
         }
     }
 
+    setupWaveformInteraction() {
+        const container = this.elements.waveformCanvas.parentElement;
+        if (!container) return;
+
+        let dragStartTime = null;
+        let dragStartX = null;
+        let isDragging = false;
+        const DRAG_THRESHOLD = 5; // pixels
+
+        const getClientX = (event) => {
+            if (event.touches && event.touches.length > 0) {
+                return event.touches[0].clientX;
+            }
+            return event.clientX;
+        };
+
+        const updatePreviewRegion = (startTime, endTime) => {
+            const duration = this.audioPlayer.duration;
+            if (duration <= 0) return;
+
+            const minTime = Math.min(startTime, endTime);
+            const maxTime = Math.max(startTime, endTime);
+
+            const startPct = (minTime / duration) * 100;
+            const endPct = (maxTime / duration) * 100;
+
+            this.elements.loopRegion.style.left = startPct + '%';
+            this.elements.loopRegion.style.width = (endPct - startPct) + '%';
+            this.elements.loopRegion.hidden = false;
+            this.elements.loopRegion.classList.add('preview');
+        };
+
+        const clearPreviewRegion = () => {
+            this.elements.loopRegion.classList.remove('preview');
+            // The onLoopChange callback will update the region to the committed state
+        };
+
+        const handlePointerDown = (event) => {
+            // Only handle left mouse button or touch
+            if (event.type === 'mousedown' && event.button !== 0) return;
+
+            // Don't start drag if audio not loaded
+            if (!this.audioPlayer.audioBuffer || this.audioPlayer.duration <= 0) return;
+
+            event.preventDefault();
+
+            const rect = this.elements.waveformCanvas.getBoundingClientRect();
+            const clientX = getClientX(event);
+            const canvasX = clientX - rect.left;
+            const clickTime = this.audioPlayer.getTimeFromX(canvasX);
+
+            // Shift+Click: extend selection from nearest edge
+            if (event.shiftKey && this.audioPlayer.loopEnabled && this.audioPlayer.loopStart !== null && this.audioPlayer.loopEnd !== null) {
+                const startDist = Math.abs(clickTime - this.audioPlayer.loopStart);
+                const endDist = Math.abs(clickTime - this.audioPlayer.loopEnd);
+
+                if (startDist < endDist) {
+                    this.audioPlayer.loopStart = clickTime;
+                } else {
+                    this.audioPlayer.loopEnd = clickTime;
+                }
+
+                // Normalize so A < B
+                if (this.audioPlayer.loopStart > this.audioPlayer.loopEnd) {
+                    [this.audioPlayer.loopStart, this.audioPlayer.loopEnd] = [this.audioPlayer.loopEnd, this.audioPlayer.loopStart];
+                }
+
+                this.audioPlayer.updateLoopState();
+                this.audioPlayer.notifyLoopChange();
+                return;
+            }
+
+            dragStartTime = clickTime;
+            dragStartX = clientX;
+            isDragging = false;
+
+            // Add move/up listeners on document for smooth dragging outside container
+            document.addEventListener('mousemove', handlePointerMove);
+            document.addEventListener('mouseup', handlePointerUp);
+            document.addEventListener('touchmove', handlePointerMove, { passive: false });
+            document.addEventListener('touchend', handlePointerUp);
+
+            container.classList.add('dragging');
+        };
+
+        const handlePointerMove = (event) => {
+            const clientX = getClientX(event);
+            const deltaX = Math.abs(clientX - dragStartX);
+
+            // Check if we've moved enough to consider it a drag
+            if (!isDragging && deltaX >= DRAG_THRESHOLD) {
+                isDragging = true;
+            }
+
+            if (isDragging) {
+                event.preventDefault();
+                const rect = this.elements.waveformCanvas.getBoundingClientRect();
+                const canvasX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+                const currentTime = this.audioPlayer.getTimeFromX(canvasX);
+                updatePreviewRegion(dragStartTime, currentTime);
+            }
+        };
+
+        const handlePointerUp = (event) => {
+            document.removeEventListener('mousemove', handlePointerMove);
+            document.removeEventListener('mouseup', handlePointerUp);
+            document.removeEventListener('touchmove', handlePointerMove);
+            document.removeEventListener('touchend', handlePointerUp);
+
+            container.classList.remove('dragging');
+
+            if (isDragging) {
+                // Finalize the selection
+                const clientX = getClientX(event);
+                const rect = this.elements.waveformCanvas.getBoundingClientRect();
+                const canvasX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+                const endTime = this.audioPlayer.getTimeFromX(canvasX);
+
+                const startTime = Math.min(dragStartTime, endTime);
+                const endTimeFinal = Math.max(dragStartTime, endTime);
+
+                // Only set loop if selection is meaningful (> 0.1s)
+                if (endTimeFinal - startTime > 0.1) {
+                    this.audioPlayer.loopStart = startTime;
+                    this.audioPlayer.loopEnd = endTimeFinal;
+                    this.audioPlayer.updateLoopState();
+                    this.audioPlayer.notifyLoopChange();
+                }
+
+                clearPreviewRegion();
+            } else {
+                // Click - seek to position
+                this.audioPlayer.seek(dragStartTime);
+                clearPreviewRegion();
+            }
+
+            dragStartTime = null;
+            dragStartX = null;
+            isDragging = false;
+        };
+
+        // Mouse events
+        container.addEventListener('mousedown', handlePointerDown);
+
+        // Touch events
+        container.addEventListener('touchstart', handlePointerDown, { passive: false });
+
+        // Prevent context menu on long press (mobile)
+        container.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
     formatTime(seconds) {
         if (!isFinite(seconds) || seconds < 0) return '0:00';
         const mins = Math.floor(seconds / 60);
@@ -327,6 +481,9 @@ class Hear2PlayApp {
 
     updateLoopRegion(loopInfo) {
         const { loopEnabled, loopStart, loopEnd, duration } = loopInfo;
+
+        // Remove preview class when committing the loop region
+        this.elements.loopRegion.classList.remove('preview');
 
         if (loopEnabled && loopStart !== null && loopEnd !== null && duration > 0) {
             const startPct = (loopStart / duration) * 100;

@@ -139,6 +139,30 @@ export class AudioPlayer {
     }
 
     /**
+     * Convert canvas X coordinate to time (seconds)
+     * @param {number} x - X coordinate relative to canvas left edge
+     * @returns {number} Time in seconds
+     */
+    getTimeFromX(x) {
+        if (!this.waveformCanvas || this.duration <= 0) return 0;
+        const width = this.waveformCanvas.width;
+        const clampedX = Math.max(0, Math.min(width, x));
+        return (clampedX / width) * this.duration;
+    }
+
+    /**
+     * Convert time (seconds) to canvas X coordinate
+     * @param {number} time - Time in seconds
+     * @returns {number} X coordinate relative to canvas left edge
+     */
+    getXFromTime(time) {
+        if (!this.waveformCanvas || this.duration <= 0) return 0;
+        const width = this.waveformCanvas.width;
+        const clampedTime = Math.max(0, Math.min(this.duration, time));
+        return (clampedTime / this.duration) * width;
+    }
+
+    /**
      * Set waveform canvas element
      */
     setWaveformCanvas(canvas) {
