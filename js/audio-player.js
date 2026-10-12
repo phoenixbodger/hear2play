@@ -14,6 +14,7 @@ export class AudioPlayer {
         this.onEnded = options.onEnded ?? (() => {});
         this.onLoaded = options.onLoaded ?? (() => {});
         this.onError = options.onError ?? (() => {});
+        this.onLoopChange = options.onLoopChange ?? (() => {});
 
         this.audioBuffer = null;
         this.sourceNode = null;
@@ -322,6 +323,7 @@ export class AudioPlayer {
     setLoopStart() {
         this.loopStart = this.currentTime;
         this.updateLoopState();
+        this.notifyLoopChange();
     }
 
     /**
@@ -330,6 +332,7 @@ export class AudioPlayer {
     setLoopEnd() {
         this.loopEnd = this.currentTime;
         this.updateLoopState();
+        this.notifyLoopChange();
     }
 
     /**
@@ -340,6 +343,7 @@ export class AudioPlayer {
         this.loopEnd = null;
         this.loopEnabled = false;
         this.drawWaveform();
+        this.notifyLoopChange();
     }
 
     /**
@@ -355,6 +359,18 @@ export class AudioPlayer {
             }
         }
         this.drawWaveform();
+    }
+
+    /**
+     * Notify loop change to UI
+     */
+    notifyLoopChange() {
+        this.onLoopChange({
+            loopEnabled: this.loopEnabled,
+            loopStart: this.loopStart,
+            loopEnd: this.loopEnd,
+            duration: this.duration
+        });
     }
 
     /**

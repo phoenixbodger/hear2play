@@ -197,7 +197,8 @@ class Hear2PlayApp {
             onTimeUpdate: (current, duration) => this.onTimeUpdate(current, duration),
             onEnded: () => this.onAudioEnded(),
             onLoaded: (duration) => this.onAudioLoaded(duration),
-            onError: (error) => this.onAudioError(error)
+            onError: (error) => this.onAudioError(error),
+            onLoopChange: (loopInfo) => this.onLoopChange(loopInfo)
         });
         this.audioPlayer.setWaveformCanvas(this.elements.waveformCanvas);
 
@@ -312,6 +313,24 @@ class Hear2PlayApp {
         if (this.audioPlayer.loopEnabled && this.audioPlayer.loopStart !== null && this.audioPlayer.loopEnd !== null) {
             const startPct = (this.audioPlayer.loopStart / duration) * 100;
             const endPct = (this.audioPlayer.loopEnd / duration) * 100;
+            this.elements.loopRegion.style.left = startPct + '%';
+            this.elements.loopRegion.style.width = (endPct - startPct) + '%';
+            this.elements.loopRegion.hidden = false;
+        } else {
+            this.elements.loopRegion.hidden = true;
+        }
+    }
+
+    onLoopChange(loopInfo) {
+        this.updateLoopRegion(loopInfo);
+    }
+
+    updateLoopRegion(loopInfo) {
+        const { loopEnabled, loopStart, loopEnd, duration } = loopInfo;
+
+        if (loopEnabled && loopStart !== null && loopEnd !== null && duration > 0) {
+            const startPct = (loopStart / duration) * 100;
+            const endPct = (loopEnd / duration) * 100;
             this.elements.loopRegion.style.left = startPct + '%';
             this.elements.loopRegion.style.width = (endPct - startPct) + '%';
             this.elements.loopRegion.hidden = false;
