@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>hear2play — Ear Training for Pianists</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>hear2play</h1>
+            <p class="tagline">Train your ear by transcribing songs</p>
+        </header>
+
+        <main class="app-main">
+            <!-- Audio Player Panel -->
+            <section class="panel audio-player-panel" aria-label="Audio Player">
+                <div class="panel-header">
+                    <h2>Audio Player</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="file-input-group">
+                        <label for="audio-file" class="btn btn-primary">
+                            <span class="btn-icon">📁</span>
+                            Load Audio File
+                        </label>
+                        <input type="file" id="audio-file" accept="audio/mp3,audio/wav,audio/mpeg,audio/x-wav" hidden>
+                        <span id="file-name" class="file-name">No file loaded</span>
+                    </div>
+
+                    <div class="waveform-container" role="img" aria-label="Audio waveform">
+                        <canvas id="waveform-canvas"></canvas>
+                        <div id="playhead" class="playhead" aria-hidden="true"></div>
+                        <div id="loop-region" class="loop-region" aria-hidden="true"></div>
+                    </div>
+
+                    <div class="transport-controls">
+                        <button id="btn-rewind" class="btn btn-icon" title="Rewind 5s" aria-label="Rewind 5 seconds">⏪</button>
+                        <button id="btn-play" class="btn btn-primary btn-large" aria-label="Play">▶</button>
+                        <button id="btn-pause" class="btn btn-primary btn-large" aria-label="Pause" hidden>⏸</button>
+                        <button id="btn-forward" class="btn btn-icon" title="Forward 5s" aria-label="Forward 5 seconds">⏩</button>
+                        <button id="btn-loop-a" class="btn btn-secondary" aria-label="Set Loop Start (A)">A</button>
+                        <button id="btn-loop-b" class="btn btn-secondary" aria-label="Set Loop End (B)">B</button>
+                        <button id="btn-loop-clear" class="btn btn-secondary" aria-label="Clear Loop" hidden>✕ Loop</button>
+                    </div>
+
+                    <div class="time-display">
+                        <span id="current-time">0:00</span> / <span id="duration">0:00</span>
+                    </div>
+
+                    <div class="speed-control">
+                        <label for="speed-slider">Speed: <span id="speed-value">1.00×</span></label>
+                        <input type="range" id="speed-slider" min="0.25" max="1.0" step="0.05" value="1.0" aria-label="Playback speed">
+                    </div>
+
+                    <div class="volume-control">
+                        <label for="volume-slider">Volume: <span id="volume-value">100%</span></label>
+                        <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Piano Keyboard Panel -->
+            <section class="panel piano-panel" aria-label="Piano Keyboard">
+                <div class="panel-header">
+                    <h2>Piano Keyboard</h2>
+                    <div class="input-mode-toggle">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="mic-toggle" aria-label="Use microphone input">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-text">Mic Input</span>
+                        </label>
+                        <span id="midi-status" class="status-indicator" data-status="disconnected">
+                            <span class="status-dot"></span>
+                            <span class="status-text">MIDI: Disconnected</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="piano-keyboard" class="piano-keyboard" role="application" aria-label="2-octave piano keyboard (C4 to B5)"></div>
+                    <div class="key-legend">
+                        <kbd>Click keys</kbd> or use <kbd>MIDI keyboard</kbd> / <kbd>Microphone</kbd>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transcription Log Panel -->
+            <section class="panel log-panel" aria-label="Transcription Log">
+                <div class="panel-header">
+                    <h2>Transcription Log</h2>
+                    <div class="log-controls">
+                        <button id="btn-clear-log" class="btn btn-secondary btn-small" aria-label="Clear log">Clear</button>
+                        <button id="btn-export-log" class="btn btn-secondary btn-small" aria-label="Export log as JSON">Export</button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <ul id="transcription-log" class="transcription-log" aria-live="polite" aria-label="Notes played">
+                        <li class="log-empty">Play notes to see transcription...</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p>hear2play — Built with Web Audio API, Web MIDI API & MediaDevices API</p>
+        </footer>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
