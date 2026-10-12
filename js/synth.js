@@ -40,7 +40,7 @@ export function isBlackKey(note) {
  */
 export class PianoSynth {
     constructor() {
-        this.activeNotes = new Map(); // note -> { oscillator, gain, gainNode }
+        this.activeNotes = new Map(); // note -> { oscillators[], gains[], release }
         this.masterGain = masterGain;
     }
 
@@ -56,39 +56,59 @@ export class PianoSynth {
         this.stop(note);
 
         const freq = noteToFrequency(note);
+        const now = audioContext.currentTime;
         const gainValue = Math.max(0.01, velocity / 127);
 
-        // Create oscillator with multiple partials for richer tone
-        const oscillator = audioContext.createOscillator();
-        oscillator.type = 'triangle'; // Base waveform
+        // Piano-like harmonic partials: the fundamental is strongest and upper
+        // harmonics are progressively weaker (a rough 1/n falloff). Together
+        // they build a richer timbre than a single bare oscillator.
+        const harmonics = [1.0, 0.55, 0.33, 0.2, 0.13, 0.09];
+        // Scale so the summed partials stay comfortably below clipping.
+        const peakBase = gainValue * 0.32;
 
-        // Create gain node for envelope
-        const gainNode = audioContext.createGain();
-        gainNode.gain.value = 0;
+        const oscillators = [];
+        const gains = [];
 
-        // Connect: oscillator -> gainNode -> masterGain
-        oscillator.connect(gainNode);
-        gainNode.connect(this.masterGain);
+        harmonics.forEach((amp, i) => {
+            // One oscillator per harmonic, tuned to freq * (i + 1)
+            const osc = audioContext.createOscillator();
+            osc.type = 'triangle';
+            // Apply the note's exact frequency so each key has the right pitch
+            // (an unset oscillator defaults to 440 Hz and every note sounds alike).
+            osc.frequency.value = freq * (i + 1);
 
-        // ADSR Envelope
-        const now = audioContext.currentTime;
-        const attack = 0.01;      // 10ms
-        const decay = 0.1;        // 100ms
-        const sustain = 0.3;      // 30% of peak
-        const release = 0.3;      // 300ms
-        const peakGain = gainValue * 0.4; // Scale down to avoid clipping
+            // Individual gain node so each partial decays at its own rate
+            const gain = audioContext.createGain();
+            gain.gain.value = 0;
 
-        // Attack
-        gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(peakGain, now + attack);
+            osc.connect(gain);
+            gain.connect(this.masterGain);
 
-        // Decay
-        gainNode.gain.linearRampToValueAtTime(peakGain * sustain, now + attack + decay);
+            // Percussive hammer-like attack, then a natural exponential decay.
+            // Higher harmonics decay faster, mimicking real piano strings.
+            const peak = peakBase * amp;
+            const decayTime = 1.7 / (i + 1); // fundamental ~1.7s, partials faster
 
-        // Store for note-off
-        this.activeNotes.set(note, { oscillator, gainNode, release, peakGain, sustainLevel: peakGain * sustain });
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(peak, now + 0.003);           // fast attack
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + decayTime); // natural tail
 
-        oscillator.start(now);
+            osc.start(now);
+            oscillators.push(osc);
+            gains.push(gain);
+        });
+
+        // Track the note so it can be released early on key-up
+        const data = { oscillators, gains, release: 0.25 };
+        this.activeNotes.set(note, data);
+
+        // Clean up oscillators after the natural decay reaches silence —
+        // unless the note was already released earlier via stop().
+        setTimeout(() => {
+            if (this.activeNotes.get(note) === data) {
+                this.stop(note);
+            }
+        }, 1900);
     }
 
     /**
@@ -96,21 +116,20 @@ export class PianoSynth {
      * @param {number} note - MIDI note number
      */
     stop(note) {
-        const noteData = this.activeNotes.get(note);
-        if (!noteData) return;
+        const data = this.activeNotes.get(note);
+        if (!data) return;
 
-        const { oscillator, gainNode, release, sustainLevel } = noteData;
+        const { oscillators, gains, release } = data;
         const now = audioContext.currentTime;
 
-        // Cancel any scheduled changes
-        gainNode.gain.cancelScheduledValues(now);
-
-        // Release from current level
-        gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-        gainNode.gain.linearRampToValueAtTime(0, now + release);
-
-        // Stop oscillator after release
-        oscillator.stop(now + release + 0.01);
+        // Ramp every partial down and stop its oscillator for a smooth release
+        oscillators.forEach((osc, i) => {
+            const gain = gains[i];
+            gain.gain.cancelScheduledValues(now);
+            gain.gain.setValueAtTime(gain.gain.value, now);
+            gain.gain.linearRampToValueAtTime(0, now + release);
+            osc.stop(now + release + 0.02);
+        });
 
         this.activeNotes.delete(note);
     }

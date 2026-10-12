@@ -96,9 +96,9 @@ hear2play/
 - Silence detection for Note Off
 
 ### Synthesizer
-- Triangle wave oscillator with ADSR envelope
-- Attack: 10ms, Decay: 100ms, Sustain: 30%, Release: 300ms
-- Polyphonic (one oscillator+gain per active note)
+- Additive/harmonic synthesis: 6 partials (fundamental + 5 harmonics) at ~1/n amplitudes for a piano-like timbre
+- Percussive ~3ms attack, then natural per-partial exponential decay (higher harmonics decay faster, ~1.7s fundamental tail)
+- Smooth 250ms release on key-up; polyphonic (one set of oscillators + gains per active note)
 - Master volume control
 
 ### MIDI Handling
