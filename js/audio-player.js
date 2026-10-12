@@ -414,6 +414,144 @@ export class AudioPlayer {
     }
 
     /**
+     * Check if a valid loop selection exists
+     */
+    hasValidSelection() {
+        return this.loopEnabled &&
+               this.loopStart !== null &&
+               this.loopEnd !== null &&
+               (this.loopEnd - this.loopStart) > 0.1;
+    }
+
+    /**
+     * Export the selected loop region as a WAV file
+     * @returns {Promise<Blob|null>} WAV blob or null if no valid selection
+     */
+    async exportSelection() {
+        if (!this.hasValidSelection() || !this.audioBuffer) {
+            return null;
+        }
+
+        try {
+            const duration = this.loopEnd - this.loopStart;
+            const sampleRate = this.audioBuffer.sampleRate;
+            const outputLength = Math.ceil(duration * sampleRate);
+
+            // Use OfflineAudioContext to render the selection
+            const offlineContext = new OfflineAudioContext(
+                this.audioBuffer.numberOfChannels,
+                outputLength,
+                sampleRate
+            );
+
+            // Create buffer source for the selection
+            const source = offlineContext.createBufferSource();
+            source.buffer = this.audioBuffer;
+            source.connect(offlineContext.destination);
+
+            // Start at loopStart, play for duration
+            source.start(0, this.loopStart, duration);
+
+            // Start rendering
+            const renderedBuffer = await offlineContext.startRendering();
+
+            // Encode to WAV
+            const wavBlob = this.encodeWAV(renderedBuffer);
+
+            return wavBlob;
+        } catch (error) {
+            console.error('Failed to export selection:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Encode AudioBuffer to WAV format
+     * @param {AudioBuffer} audioBuffer - The audio buffer to encode
+     * @returns {Blob} WAV blob
+     */
+    encodeWAV(audioBuffer) {
+        const numChannels = audioBuffer.numberOfChannels;
+        const sampleRate = audioBuffer.sampleRate;
+        const numSamples = audioBuffer.length; // samples per channel
+        const sampleSize = 16; // 16-bit samples
+        const bytesPerSample = sampleSize / 8; // 2 bytes
+
+        const byteLength = numSamples * numChannels * bytesPerSample;
+        const buffer = new ArrayBuffer(44 + byteLength);
+        const view = new DataView(buffer);
+
+        // WAV file header
+        this.writeWAVHeader(view, byteLength, numChannels, sampleRate, sampleSize);
+
+        const channelData = [];
+        for (let i = 0; i < numChannels; i++) {
+            channelData.push(audioBuffer.getChannelData(i));
+        }
+
+        // Interleave channels
+        let offset = 44;
+        for (let i = 0; i < numSamples; i++) {
+            for (let channel = 0; channel < numChannels; channel++) {
+                const sample = Math.max(-1, Math.min(1, channelData[channel][i]));
+                view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+                offset += bytesPerSample;
+            }
+        }
+
+        return new Blob([view], { type: 'audio/wav' });
+    }
+
+    /**
+     * Write WAV header bytes
+     * @param {DataView} view - DataView to write to
+     * @param {number} byteLength - Length of audio data in bytes
+     * @param {number} numChannels - Number of channels
+     * @param {number} sampleRate - Sample rate
+     * @param {number} sampleSize - Bits per sample
+     */
+    writeWAVHeader(view, byteLength, numChannels, sampleRate, sampleSize) {
+        // RIFF identifier
+        this.writeASCII(view, 0, 'RIFF');
+        // File length minus first 8 bytes
+        view.setUint32(4, 36 + byteLength, true);
+        // RIFF type
+        this.writeASCII(view, 8, 'WAVE');
+        // Format chunk identifier
+        this.writeASCII(view, 12, 'fmt ');
+        // Format chunk length
+        view.setUint32(16, 16, true);
+        // Sample format (raw PCM)
+        view.setUint16(20, 1, true);
+        // Channel count
+        view.setUint16(22, numChannels, true);
+        // Sample rate
+        view.setUint32(24, sampleRate, true);
+        // Byte rate (sample rate * block align)
+        view.setUint32(28, sampleRate * numChannels * sampleSize / 8, true);
+        // Block align (channel count * sample size)
+        view.setUint16(32, numChannels * sampleSize / 8, true);
+        // Bits per sample
+        view.setUint16(34, sampleSize, true);
+        // Data chunk identifier
+        this.writeASCII(view, 36, 'data');
+        // Data chunk length
+        view.setUint32(40, byteLength, true);
+    }
+
+    /**
+     * Helper to write ASCII string to DataView
+     * @param {DataView} view - DataView to write to
+     * @param {number} offset - Offset in bytes
+     * @param {string} str - String to write
+     */
+    writeASCII(view, offset, str) {
+        for (let i = 0; i < str.length; i++) {
+            view.setUint8(offset + i, str.charCodeAt(i));
+        }
+    }
+
+    /**
      * Cleanup
      */
     destroy() {

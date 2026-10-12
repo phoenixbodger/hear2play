@@ -44,6 +44,7 @@ class Hear2PlayApp {
         this.elements.btnLoopA = document.getElementById('btn-loop-a');
         this.elements.btnLoopB = document.getElementById('btn-loop-b');
         this.elements.btnLoopClear = document.getElementById('btn-loop-clear');
+        this.elements.btnExportSelection = document.getElementById('btn-export-selection');
         this.elements.currentTime = document.getElementById('current-time');
         this.elements.duration = document.getElementById('duration');
         this.elements.speedSlider = document.getElementById('speed-slider');
@@ -243,6 +244,7 @@ class Hear2PlayApp {
         this.elements.btnLoopA.addEventListener('click', () => this.audioPlayer.setLoopStart());
         this.elements.btnLoopB.addEventListener('click', () => this.audioPlayer.setLoopEnd());
         this.elements.btnLoopClear.addEventListener('click', () => this.audioPlayer.clearLoop());
+        this.elements.btnExportSelection.addEventListener('click', () => this.exportSelection());
 
         this.elements.speedSlider.addEventListener('input', (e) => {
             const rate = parseFloat(e.target.value);
@@ -494,6 +496,11 @@ class Hear2PlayApp {
         } else {
             this.elements.loopRegion.hidden = true;
         }
+
+        // Show/hide export button based on valid loop selection
+        this.elements.btnExportSelection.hidden = !loopEnabled || !this.audioBuffer || 
+                                               !(this.loopStart !== null && this.loopEnd !== null && 
+                                                (this.loopEnd - this.loopStart) > 0.1);
     }
 
     onAudioEnded() {
@@ -614,6 +621,26 @@ class Hear2PlayApp {
                 this.audioPlayer.updateLoopState();
             }
         }
+    }
+
+    /**
+     * Export the selected loop region as a WAV file
+     */
+    async exportSelection() {
+        const blob = await this.audioPlayer.exportSelection();
+        
+        if (!blob) {
+            console.warn('No valid selection to export');
+            return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        a.download = `hear2play-selection-${timestamp}.wav`;
+        a.click();
+        URL.revokeObjectURL(url);
     }
 }
 

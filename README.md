@@ -9,6 +9,7 @@ A web application for pianists to train their ear by transcribing songs. Built w
 - Variable playback speed (0.25x to 1.0x) without pitch change
 - A-B looping for repeating sections
 - Waveform visualization with playhead and loop region
+- Export selected loop region as WAV file
 - Keyboard shortcuts: Space (play/pause), Arrow keys (seek), L (toggle loop)
 
 ### 🎹 Dual-Input Note Detection
