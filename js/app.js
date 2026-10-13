@@ -27,6 +27,9 @@ class Hear2PlayApp {
 
         this.inputMode = 'midi';
         this.activeNotes = new Set();
+        this.keyboardBaseOctave = 4; // C4 = MIDI 60
+        this.minKeyboardOctave = 1;  // C1
+        this.maxKeyboardOctave = 6;  // C6
 
         this.init();
     }
@@ -51,9 +54,13 @@ class Hear2PlayApp {
         this.elements.duration = document.getElementById('duration');
         this.elements.speedSlider = document.getElementById('speed-slider');
         this.elements.speedValue = document.getElementById('speed-value');
+        this.elements.speedStretchIndicator = document.getElementById('speed-stretch-indicator');
         this.elements.volumeSlider = document.getElementById('volume-slider');
         this.elements.volumeValue = document.getElementById('volume-value');
         this.elements.pianoContainer = document.getElementById('piano-keyboard');
+        this.elements.btnOctaveDown = document.getElementById('btn-octave-down');
+        this.elements.btnOctaveUp = document.getElementById('btn-octave-up');
+        this.elements.keyboardOctaveValue = document.getElementById('keyboard-octave-value');
         this.elements.micToggle = document.getElementById('mic-toggle');
         this.elements.midiStatus = document.getElementById('midi-status');
         this.elements.logContainer = document.querySelector('.log-panel .panel-content');
@@ -203,6 +210,17 @@ class Hear2PlayApp {
             onError: (error) => this.onAudioError(error),
             onLoopChange: (loopInfo) => this.onLoopChange(loopInfo)
         });
+        
+        // Set up stretching callbacks for UI feedback
+        this.audioPlayer.onStretchingStart = () => {
+            this.elements.speedStretchIndicator.hidden = false;
+            this.elements.speedSlider.disabled = true;
+        };
+        this.audioPlayer.onStretchingEnd = () => {
+            this.elements.speedStretchIndicator.hidden = true;
+            this.elements.speedSlider.disabled = false;
+        };
+        
         this.audioPlayer.setWaveformCanvas(this.elements.waveformCanvas);
 
         // Setup waveform click/drag interaction
@@ -250,10 +268,20 @@ class Hear2PlayApp {
         this.elements.btnStop.addEventListener('click', () => this.audioPlayer.stop());
         this.elements.btnRestart.addEventListener('click', () => this.audioPlayer.seek(0));
 
+        // Debounced speed control to avoid firing dozens of stretches while dragging
+        let speedTimer = null;
         this.elements.speedSlider.addEventListener('input', (e) => {
             const rate = parseFloat(e.target.value);
-            this.audioPlayer.setPlaybackRate(rate);
             this.elements.speedValue.textContent = rate.toFixed(2) + 'x';
+            clearTimeout(speedTimer);
+            speedTimer = setTimeout(async () => {
+                // Skip work entirely if it's (close to) the normal speed
+                if (Math.abs(rate - 1.0) < 0.001) {
+                    await this.audioPlayer.clearPlaybackRate();
+                } else {
+                    await this.audioPlayer.setPlaybackRate(rate);
+                }
+            }, 250);
         });
 
         this.elements.volumeSlider.addEventListener('input', (e) => {
@@ -264,6 +292,10 @@ class Hear2PlayApp {
         });
 
         this.elements.micToggle.addEventListener('change', (e) => this.toggleInputMode(e.target.checked));
+
+        this.elements.btnOctaveDown.addEventListener('click', () => this.shiftKeyboardOctave(-1));
+        this.elements.btnOctaveUp.addEventListener('click', () => this.shiftKeyboardOctave(1));
+        this.updateKeyboardOctaveDisplay();
 
         this.elements.btnClearLog.addEventListener('click', () => this.transcriptionLog.clear());
         this.elements.btnExportLog.addEventListener('click', () => this.transcriptionLog.downloadExport());
@@ -601,6 +633,32 @@ class Hear2PlayApp {
         }
     }
 
+    /**
+     * Shift the on-screen keyboard's octave range
+     * @param {number} delta - +1 or -1 (octaves)
+     */
+    shiftKeyboardOctave(delta) {
+        const next = Math.max(this.minKeyboardOctave, Math.min(this.maxKeyboardOctave, this.keyboardBaseOctave + delta));
+        if (next === this.keyboardBaseOctave) return;
+        this.keyboardBaseOctave = next;
+        const lowestNote = 12 * (this.keyboardBaseOctave + 1); // C1 = 24, C4 = 60
+        const highestNote = lowestNote + 23; // 2 octaves = 24 keys
+        this.pianoKeyboard.setRange(lowestNote, highestNote);
+        this.updateKeyboardOctaveDisplay();
+    }
+
+    /**
+     * Update the keyboard octave display and button disabled states
+     */
+    updateKeyboardOctaveDisplay() {
+        const baseOctave = this.keyboardBaseOctave;
+        const noteName = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        // Show the lowest note (e.g., C4, C3, etc.)
+        this.elements.keyboardOctaveValue.textContent = noteName[0] + baseOctave;
+        this.elements.btnOctaveDown.disabled = baseOctave <= this.minKeyboardOctave;
+        this.elements.btnOctaveUp.disabled = baseOctave >= this.maxKeyboardOctave;
+    }
+
     onKeyDown(event) {
         if (event.code === 'Space' && event.target === document.body) {
             event.preventDefault();
@@ -634,6 +692,16 @@ class Hear2PlayApp {
             } else if (this.audioPlayer.loopStart !== null && this.audioPlayer.loopEnd !== null) {
                 this.audioPlayer.updateLoopState();
             }
+        }
+
+        if (event.code === 'KeyZ' && event.target === document.body) {
+            event.preventDefault();
+            this.shiftKeyboardOctave(-1);
+        }
+
+        if (event.code === 'KeyX' && event.target === document.body) {
+            event.preventDefault();
+            this.shiftKeyboardOctave(1);
         }
     }
 

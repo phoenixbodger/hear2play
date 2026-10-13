@@ -55,7 +55,8 @@
 
                     <div class="speed-control">
                         <label for="speed-slider">Speed: <span id="speed-value">1.00×</span></label>
-                        <input type="range" id="speed-slider" min="0.25" max="1.0" step="0.05" value="1.0" aria-label="Playback speed">
+                        <input type="range" id="speed-slider" min="0.25" max="2.0" step="0.05" value="1.0" aria-label="Playback speed">
+                        <span id="speed-stretch-indicator" class="stretch-indicator" hidden aria-live="polite">⏳ Stretching…</span>
                     </div>
 
                     <div class="volume-control">
@@ -69,6 +70,11 @@
             <section class="panel piano-panel" aria-label="Piano Keyboard">
                 <div class="panel-header">
                     <h2>Piano Keyboard</h2>
+                    <div class="octave-control" role="group" aria-label="Keyboard octave">
+                        <button id="btn-octave-down" class="btn btn-secondary btn-icon btn-small" aria-label="Shift keyboard down one octave" title="Keyboard octave down (Z)">▼</button>
+                        <span id="keyboard-octave-value" class="keyboard-octave-value" aria-live="polite">C4</span>
+                        <button id="btn-octave-up" class="btn btn-secondary btn-icon btn-small" aria-label="Shift keyboard up one octave" title="Keyboard octave up (X)">▲</button>
+                    </div>
                     <div class="input-mode-toggle">
                         <label class="toggle-label">
                             <input type="checkbox" id="mic-toggle" aria-label="Use microphone input">
@@ -84,7 +90,7 @@
                 <div class="panel-content">
                     <div id="piano-keyboard" class="piano-keyboard" role="application" aria-label="2-octave piano keyboard (C4 to B5)"></div>
                     <div class="key-legend">
-                        <kbd>Click keys</kbd> or use <kbd>MIDI keyboard</kbd> / <kbd>Microphone</kbd>
+                        <kbd>Click keys</kbd> or use <kbd>MIDI keyboard</kbd> / <kbd>Microphone</kbd> — <kbd>Z</kbd>/<kbd>X</kbd> or the ▼/▲ buttons change the keyboard range
                     </div>
                 </div>
             </section>
@@ -181,11 +187,12 @@ python -m http.server 8000
 
                         <h4>On-Screen Keyboard</h4>
                         <ul>
-                            <li>2-octave range: <strong>C4 to B5</strong> (24 keys)</li>
+                            <li>2-octave range: <strong>C4 to B5</strong> (24 keys) by default</li>
                             <li><strong>Click/touch</strong> keys to play notes with synthesized piano tones</li>
                             <li>Keys <strong>light up</strong> when notes are received via MIDI, microphone, or click</li>
                             <li>Each key shows its note name (e.g., C4, C♯4, D4)</li>
                             <li>Full keyboard accessibility: <kbd>Tab</kbd> to navigate, <kbd>Space</kbd>/<kbd>Enter</kbd> to play</li>
+                            <li><strong>Keyboard range:</strong> use the ▼/▲ buttons (or <kbd>Z</kbd>/<kbd>X</kbd> keys) to shift the on-screen keyboard up or down by octaves (C1–B2 through C6–B7). The key labels update to match the new range.</li>
                         </ul>
 
                         <h4>Input Modes</h4>
@@ -248,6 +255,10 @@ python -m http.server 8000
                                 <tr>
                                     <td><kbd>R</kbd></td>
                                     <td>Restart playback from the beginning</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Z</kbd> / <kbd>X</kbd></td>
+                                    <td>Shift on-screen keyboard range down / up one octave</td>
                                 </tr>
                                 <tr>
                                     <td><kbd>Tab</kbd></td>

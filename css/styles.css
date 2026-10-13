@@ -376,6 +376,7 @@ input[type="file"] {
 .speed-control,
 .volume-control {
     margin-bottom: var(--space-md);
+    position: relative;
 }
 
 .speed-control label,
@@ -386,6 +387,19 @@ input[type="file"] {
     font-size: var(--font-size-sm);
     color: var(--fg-secondary);
     margin-bottom: var(--space-xs);
+}
+
+.stretch-indicator {
+    display: inline-block;
+    margin-left: var(--space-sm);
+    font-size: var(--font-size-xs);
+    color: var(--accent);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
 }
 
 /* ==========================================================================
@@ -446,6 +460,32 @@ input[type="file"] {
 .toggle-label input:checked + .toggle-slider::before {
     left: 22px;
     background: var(--fg-inverse);
+}
+
+.octave-control {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+}
+
+.octave-control .btn-icon.btn-small {
+    padding: 2px var(--space-xs);
+    aspect-ratio: auto;
+    line-height: 1;
+}
+
+.octave-value,
+.keyboard-octave-value {
+    min-width: 1.5em;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--fg-primary);
 }
 
 .status-indicator {

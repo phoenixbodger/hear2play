@@ -4,6 +4,7 @@
  */
 
 import { audioContext, ensureAudioContextRunning } from './audio-context.js';
+import { timeStretch } from './wsola.js';
 
 /**
  * Audio Player Class
@@ -26,6 +27,12 @@ export class AudioPlayer {
         this.isPlaying = false;
         this.currentTime = 0;
         this.duration = 0;
+
+        // Time-stretched buffer cache (for pitch-preserving speed control)
+        this.timeStretchedBuffer = null;
+        this.stretchRatio = 1.0; // 1.0 = normal, 2.0 = half speed, etc.
+        this.isStretching = false;
+        this.stretchBufferCache = new Map(); // stretchRatio -> AudioBuffer
 
         // A-B Loop
         this.loopStart = null;
@@ -57,6 +64,10 @@ export class AudioPlayer {
             this.duration = this.audioBuffer.duration;
             this.currentTime = 0;
             this.pauseTime = 0;
+            // Clear time-stretched cache when new file loads
+            this.timeStretchedBuffer = null;
+            this.stretchRatio = 1.0;
+            this.stretchBufferCache.clear();
             this.generateWaveform();
 
             this.onLoaded(this.duration);
@@ -181,9 +192,16 @@ export class AudioPlayer {
 
         this.stopSource();
 
+        // Use time-stretched buffer if available (for pitch-preserving speed)
+        // Otherwise fall back to original buffer with playbackRate
+        const bufferToUse = this.timeStretchedBuffer || this.audioBuffer;
+        const useNativeRate = !this.timeStretchedBuffer;
+
         this.sourceNode = audioContext.createBufferSource();
-        this.sourceNode.buffer = this.audioBuffer;
-        this.sourceNode.playbackRate.value = this.playbackRate;
+        this.sourceNode.buffer = bufferToUse;
+        // Use native playbackRate only if we don't have a stretched buffer
+        // (WSOLA stretched audio plays at 1.0 rate)
+        this.sourceNode.playbackRate.value = useNativeRate ? this.playbackRate : 1.0;
         this.sourceNode.connect(this.gainNode);
 
         this.sourceNode.onended = () => {
@@ -193,8 +211,10 @@ export class AudioPlayer {
             }
         };
 
-        const offset = this.pauseTime;
-        this.startTime = audioContext.currentTime - offset;
+        // Convert pauseTime (original time) to buffer time (stretched time if needed)
+        const offset = useNativeRate ? this.pauseTime : this.pauseTime * this.stretchRatio;
+        // startTime = wall-clock time playback begins; content offset is pauseTime
+        this.startTime = audioContext.currentTime;
         this.sourceNode.start(0, offset);
         this.isPlaying = true;
         this.startTimeUpdates();
@@ -206,8 +226,10 @@ export class AudioPlayer {
     pause() {
         if (!this.isPlaying) return;
 
+        // Content advances by playbackRate per wall-clock second in both modes
+        this.pauseTime = this.pauseTime + (audioContext.currentTime - this.startTime) * this.playbackRate;
+
         this.stopSource();
-        this.pauseTime = audioContext.currentTime - this.startTime;
         this.isPlaying = false;
         this.stopTimeUpdates();
     }
@@ -245,6 +267,124 @@ export class AudioPlayer {
     }
 
     /**
+     * Serialize stretch operations so only one runs at a time.
+     */
+    queueStretch(task) {
+        const next = this._stretchChain ? this._stretchChain.then(task) : task();
+        this._stretchChain = next.catch(() => {});
+        return next;
+    }
+
+    /**
+     * Set playback rate with pitch preservation using WSOLA time-stretching
+     * @param {number} rate - Playback rate (0.25 - 1.0 for slowdown, >1.0 for speedup)
+     * @returns {Promise<void>} Resolves when stretching is complete
+     */
+    async setPlaybackRate(rate) {
+        if (!this.audioBuffer) return;
+        return this.queueStretch(() => this._doSetPlaybackRate(rate));
+    }
+
+    /**
+     * Apply the requested playback rate (serialized via queueStretch).
+     */
+    async _doSetPlaybackRate(rate) {
+        // Clamp rate to valid range
+        const clampedRate = Math.max(0.25, Math.min(4.0, rate));
+
+        // If rate hasn't changed significantly, do nothing
+        if (Math.abs(clampedRate - this.playbackRate) < 0.001) {
+            return;
+        }
+
+        // Capture current playing state BEFORE changing anything (pause needs
+        // the OLD playbackRate to compute the correct content position)
+        const wasPlaying = this.isPlaying;
+        const currentPlaybackTime = this.currentTime;
+
+        if (wasPlaying) {
+            this.pause();
+        }
+
+        // Stretch ratio is inverse of playback rate
+        // rate 0.5 = half speed = stretch ratio 2.0
+        // rate 2.0 = double speed = stretch ratio 0.5
+        this.playbackRate = clampedRate;
+        const newStretchRatio = 1.0 / clampedRate;
+
+        // If stretch ratio hasn't changed significantly, do nothing (but keep
+        // the new rate so playback continues at it)
+        this.stretchRatio = newStretchRatio;
+
+        // Check cache first
+        let stretchedBuffer = this.stretchBufferCache.get(this.stretchRatio);
+
+        if (!stretchedBuffer) {
+            // Show stretching indicator
+            this.isStretching = true;
+            this.onStretchingStart?.();
+
+            try {
+                // Stretch the original audio buffer
+                stretchedBuffer = await timeStretch(this.audioBuffer, this.stretchRatio);
+                // Cache for future use
+                this.stretchBufferCache.set(this.stretchRatio, stretchedBuffer);
+            } catch (error) {
+                console.error('WSOLA time-stretch failed:', error);
+                // Fallback to original buffer
+                stretchedBuffer = null;
+            } finally {
+                this.isStretching = false;
+                this.onStretchingEnd?.();
+            }
+        }
+        
+        this.timeStretchedBuffer = stretchedBuffer;
+        
+        if (wasPlaying) {
+            // Resume from current position (adjusted for new stretch ratio)
+            this.pauseTime = currentPlaybackTime;
+            await this.play();
+        }
+    }
+
+    /**
+     * Clear time-stretching and reset playback to normal speed (1.0x).
+     * Only called when no time-stretched buffer is in use.
+     * @returns {Promise<void>}
+     */
+    async clearPlaybackRate() {
+        if (!this.audioBuffer) return;
+        
+        const wasAtNormal = Math.abs(this.stretchRatio - 1.0) < 0.001;
+        if (wasAtNormal && !this.timeStretchedBuffer) {
+            return; // already normal
+        }
+        
+        const wasPlaying = this.isPlaying;
+        const currentPlaybackTime = this.currentTime;
+        
+        if (wasPlaying) {
+            this.pause();
+        }
+        
+        this.stretchRatio = 1.0;
+        this.playbackRate = 1.0;
+        this.timeStretchedBuffer = null;
+        
+        if (wasPlaying) {
+            this.pauseTime = currentPlaybackTime;
+            await this.play();
+        }
+    }
+
+    /**
+     * Callbacks for stretching progress (optional, for UI)
+     */
+    onStretchingStart() {}
+    onStretchingEnd() {}
+
+    /**
      * Start time update loop
      */
     startTimeUpdates() {
@@ -268,18 +408,27 @@ export class AudioPlayer {
     tick() {
         if (!this.isPlaying) return;
 
-        this.currentTime = audioContext.currentTime - this.startTime;
+        // Content advances by playbackRate per wall-clock second in both modes.
+        // This keeps the playhead on the original waveform regardless of mode.
+        this.currentTime = this.pauseTime + (audioContext.currentTime - this.startTime) * this.playbackRate;
 
         // Handle A-B looping
         if (this.loopEnabled && this.loopEnd !== null && this.currentTime >= this.loopEnd) {
             this.currentTime = this.loopStart;
-            this.startTime = audioContext.currentTime - this.loopStart;
+            this.pauseTime = this.loopStart;
+            this.startTime = audioContext.currentTime;
+            // Convert loopStart to buffer time for the new source
+            const loopStartBufferTime = this.timeStretchedBuffer ? this.loopStart * this.stretchRatio : this.loopStart;
             this.sourceNode.stop();
             this.sourceNode.disconnect();
 
+            // Use time-stretched buffer if available
+            const bufferToUse = this.timeStretchedBuffer || this.audioBuffer;
+            const useNativeRate = !this.timeStretchedBuffer;
+
             this.sourceNode = audioContext.createBufferSource();
-            this.sourceNode.buffer = this.audioBuffer;
-            this.sourceNode.playbackRate.value = this.playbackRate;
+            this.sourceNode.buffer = bufferToUse;
+            this.sourceNode.playbackRate.value = useNativeRate ? this.playbackRate : 1.0;
             this.sourceNode.connect(this.gainNode);
             this.sourceNode.onended = () => {
                 if (!this.loopEnabled) {
@@ -287,23 +436,13 @@ export class AudioPlayer {
                     this.onEnded();
                 }
             };
-            this.sourceNode.start(0, this.loopStart);
+            this.sourceNode.start(0, loopStartBufferTime);
         }
 
         this.onTimeUpdate(this.currentTime, this.duration);
         this.drawWaveform();
 
         this.timeUpdateId = requestAnimationFrame(() => this.tick());
-    }
-
-    /**
-     * Set playback rate (0.25 - 1.0)
-     */
-    setPlaybackRate(rate) {
-        this.playbackRate = Math.max(0.25, Math.min(1.0, rate));
-        if (this.sourceNode) {
-            this.sourceNode.playbackRate.value = this.playbackRate;
-        }
     }
 
     /**
@@ -315,19 +454,24 @@ export class AudioPlayer {
     }
 
     /**
-     * Seek to time
+     * Seek to time (in original timeline)
      */
     seek(time) {
         const clampedTime = Math.max(0, Math.min(this.duration, time));
         const wasPlaying = this.isPlaying;
 
+        // Convert to buffer time (stretched time if using stretched buffer)
+        const bufferTime = this.timeStretchedBuffer ? clampedTime * this.stretchRatio : clampedTime;
+        const bufferToUse = this.timeStretchedBuffer || this.audioBuffer;
+        const useNativeRate = !this.timeStretchedBuffer;
+
         if (wasPlaying) {
             this.stopSource();
             this.pauseTime = clampedTime;
-            this.startTime = audioContext.currentTime - clampedTime;
+            this.startTime = audioContext.currentTime;
             this.sourceNode = audioContext.createBufferSource();
-            this.sourceNode.buffer = this.audioBuffer;
-            this.sourceNode.playbackRate.value = this.playbackRate;
+            this.sourceNode.buffer = bufferToUse;
+            this.sourceNode.playbackRate.value = useNativeRate ? this.playbackRate : 1.0;
             this.sourceNode.connect(this.gainNode);
             this.sourceNode.onended = () => {
                 if (!this.loopEnabled) {
@@ -335,7 +479,7 @@ export class AudioPlayer {
                     this.onEnded();
                 }
             };
-            this.sourceNode.start(0, clampedTime);
+            this.sourceNode.start(0, bufferTime);
         } else {
             this.pauseTime = clampedTime;
             this.currentTime = clampedTime;
