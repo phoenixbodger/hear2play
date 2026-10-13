@@ -53,9 +53,11 @@ class Hear2PlayApp {
         this.elements.currentTime = document.getElementById('current-time');
         this.elements.duration = document.getElementById('duration');
         this.elements.speedSlider = document.getElementById('speed-slider');
+        this.elements.speedInput = document.getElementById('speed-input');
         this.elements.speedValue = document.getElementById('speed-value');
         this.elements.speedStretchIndicator = document.getElementById('speed-stretch-indicator');
         this.elements.volumeSlider = document.getElementById('volume-slider');
+        this.elements.volumeInput = document.getElementById('volume-input');
         this.elements.volumeValue = document.getElementById('volume-value');
         this.elements.pianoContainer = document.getElementById('piano-keyboard');
         this.elements.btnOctaveDown = document.getElementById('btn-octave-down');
@@ -270,9 +272,10 @@ class Hear2PlayApp {
 
         // Debounced speed control to avoid firing dozens of stretches while dragging
         let speedTimer = null;
-        this.elements.speedSlider.addEventListener('input', (e) => {
-            const rate = parseFloat(e.target.value);
+        const updateSpeed = (rate) => {
             this.elements.speedValue.textContent = rate.toFixed(2) + 'x';
+            this.elements.speedSlider.value = rate;
+            this.elements.speedInput.value = rate;
             clearTimeout(speedTimer);
             speedTimer = setTimeout(async () => {
                 // Skip work entirely if it's (close to) the normal speed
@@ -282,13 +285,42 @@ class Hear2PlayApp {
                     await this.audioPlayer.setPlaybackRate(rate);
                 }
             }, 250);
+        };
+
+        this.elements.speedSlider.addEventListener('input', (e) => {
+            const rate = parseFloat(e.target.value);
+            updateSpeed(rate);
         });
 
-        this.elements.volumeSlider.addEventListener('input', (e) => {
-            const volume = parseFloat(e.target.value);
+        this.elements.speedInput.addEventListener('change', (e) => {
+            let rate = parseFloat(e.target.value);
+            // Clamp to valid range
+            rate = Math.max(0.25, Math.min(2.0, rate));
+            // Round to step (0.05)
+            rate = Math.round(rate / 0.05) * 0.05;
+            updateSpeed(rate);
+        });
+
+        const updateVolume = (volume) => {
             this.audioPlayer.setVolume(volume);
             pianoSynth.setVolume(volume);
             this.elements.volumeValue.textContent = Math.round(volume * 100) + '%';
+            this.elements.volumeSlider.value = volume;
+            this.elements.volumeInput.value = volume;
+        };
+
+        this.elements.volumeSlider.addEventListener('input', (e) => {
+            const volume = parseFloat(e.target.value);
+            updateVolume(volume);
+        });
+
+        this.elements.volumeInput.addEventListener('change', (e) => {
+            let volume = parseFloat(e.target.value);
+            // Clamp to valid range
+            volume = Math.max(0, Math.min(1, volume));
+            // Round to step (0.05)
+            volume = Math.round(volume / 0.05) * 0.05;
+            updateVolume(volume);
         });
 
         this.elements.micToggle.addEventListener('change', (e) => this.toggleInputMode(e.target.checked));

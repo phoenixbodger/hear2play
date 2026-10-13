@@ -55,13 +55,19 @@
 
                     <div class="speed-control">
                         <label for="speed-slider">Speed: <span id="speed-value">1.00×</span></label>
-                        <input type="range" id="speed-slider" min="0.25" max="2.0" step="0.05" value="1.0" aria-label="Playback speed">
+                        <div class="control-group">
+                            <input type="range" id="speed-slider" min="0.25" max="2.0" step="0.05" value="1.0" aria-label="Playback speed">
+                            <input type="number" id="speed-input" min="0.25" max="2.0" step="0.05" value="1.0" aria-label="Playback speed (exact value)">
+                        </div>
                         <span id="speed-stretch-indicator" class="stretch-indicator" hidden aria-live="polite">⏳ Stretching…</span>
                     </div>
 
                     <div class="volume-control">
                         <label for="volume-slider">Volume: <span id="volume-value">100%</span></label>
-                        <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+                        <div class="control-group">
+                            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+                            <input type="number" id="volume-input" min="0" max="1" step="0.05" value="1" aria-label="Volume (exact value)">
+                        </div>
                     </div>
                 </div>
             </section>

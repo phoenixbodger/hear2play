@@ -402,6 +402,47 @@ input[type="file"] {
     50% { opacity: 1; }
 }
 
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.control-group input[type="range"] {
+    flex: 1;
+    min-width: 0;
+}
+
+.control-group input[type="number"] {
+    width: 70px;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--space-xs);
+    color: var(--fg-primary);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    text-align: center;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.control-group input[type="number"]:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 2px var(--accent-primary);
+}
+
+.control-group input[type="number"]::-webkit-inner-spin-button,
+.control-group input[type="number"]::-webkit-outer-spin-button {
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.control-group input[type="number"]:hover::-webkit-inner-spin-button,
+.control-group input[type="number"]:hover::-webkit-outer-spin-button {
+    opacity: 1;
+}
+
 /* ==========================================================================
    Piano Keyboard
    ========================================================================== */
